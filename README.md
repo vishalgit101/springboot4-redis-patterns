@@ -198,27 +198,7 @@ src/main/java
 * ![Service Layer](images/servicelayer.png)
   **Link:** `images/servicelayer.png`
 
-### API Flow Screens
 
-* ![ApiCall1](images/ApiCall1.png)
-* ![ApiCall2](images/ApiCall2.png)
-
-### Cache Screens
-
-* ![Cached1](images/Cached1.png)
-* ![Cached2](images/Cached2.png)
-
-### Error Screens
-
-* ![Notfound](images/Notfound.png)
-* ![Rate Limit Exceeded](images/ratelimitexceeded.png)
-
-### Config Screens
-
-* ![Redis Config](images/redisconfig.png)
-* ![Service Layer](images/servicelayer.png)
-
----
 
 ## 👨‍💻 Resume Highlights
 
