@@ -1,177 +1,231 @@
-⛈️ Spring Boot 4 Advanced Weather API
+# ⛈️ Spring Boot 4 Advanced Weather API
 
-A high-performance Weather API Proxy engineered with Spring Boot 4 and Redis. This project demonstrates advanced backend architecture patterns, including a secure dual-mapper serialization strategy for polymorphic caching and a distributed rate-limiting filter.
+A high-performance **Weather API Proxy** engineered with **Spring Boot 4** and **Redis**, demonstrating advanced backend architecture patterns such as dual-mapper serialization for secure polymorphic caching and distributed rate limiting.
 
-🚀 Key Architectural Features
+---
 
-1. Dual-Mapper Serialization Strategy (Security)
+## 🚀 Key Architectural Features
 
-Solved the "Redis ClassCastException vs. API Data Leak" dilemma using Jackson 3.
+### **1. Dual-Mapper Serialization Strategy (Security)**
 
-The Challenge: Redis needs type information (e.g., "@class": "model.WeatherResponse") to deserialize generic objects correctly. However, exposing this internal class structure in public API responses is a security risk and bad practice.
+**Problem:** Redis requires type metadata (e.g., `@class`) for correct deserialization, but exposing this metadata in API responses is a security risk.
 
-The Solution: Implemented a Local Mapper Pattern.
+**Solution:** Implemented the **Local Mapper Pattern**:
 
-Internal Mapper (Redis): A dedicated, isolated JsonMapper configured with activateDefaultTyping and JsonTypeInfo.As.PROPERTY. This ensures Redis stores type metadata securely.
+* **Internal Dirty Mapper (Redis):** Uses `activateDefaultTyping` + `JsonTypeInfo.As.PROPERTY` to store type metadata.
+* **External Clean Mapper (API):** Standard Spring Boot mapper without class metadata.
 
-External Mapper (API): The global Spring Boot mapper remains clean.
+**Result:**
 
-Outcome: The Cache works perfectly, but the Frontend receives clean, standard JSON.
+* Cache deserializes cleanly.
+* Frontend receives clean, safe JSON.
 
-2. Distributed Rate Limiting (Fixed Window)
+---
 
-Implemented a custom jakarta.servlet.Filter to protect the API from abuse.
+### **2. Distributed Rate Limiting (Fixed Window Algorithm)**
 
-Mechanism: Uses Redis atomic INCR operations to track request counts per IP address.
+A custom `jakarta.servlet.Filter` protects the API from overuse.
 
-Algorithm: Fixed Window Counter.
+**Mechanism:**
 
-Logic: Limits clients to 10 requests per minute.
+* Client IP is extracted.
+* Redis `INCR` increments a counter key: `rate_limit:{ip}`.
+* TTL of **60 seconds** is applied on the first request.
+* If count > **10**, return **429 Too Many Requests**.
 
-Implementation:
+**Why Redis?**
+Works across **distributed instances**, making it horizontally scalable.
 
-Extracts Client IP.
+#### **Rate Limiter Flow**
 
-Increments a Redis counter key (rate_limit:192.168.x.x).
-
-Sets a generic TTL (Time-To-Live) of 60 seconds on the first request.
-
-Rejects requests with 429 Too Many Requests if the counter exceeds the limit.
-
-Why Redis? Because Redis is external to the application memory, this rate limiter works correctly even if the application is scaled across multiple server instances (Distributed Rate Limiting).
-
-3. Spring Boot 4 & Jackson 3 Migration
-
-Leverages the bleeding-edge Spring Boot 4 (Preview).
-
-Successfully migrated dependencies from the legacy com.fasterxml.jackson namespace to the new tools.jackson namespace used by the next generation of Spring Framework.
-
-🛠️ Tech Stack
-
-Framework: Spring Boot 4.0 (Snapshot/Preview)
-
-Language: Java 17+
-
-Database: Redis (Dockerized)
-
-Libraries:
-
-Spring Data Redis
-
-Jackson 3 (tools.jackson.databind)
-
-Lombok
-
-Tools: Maven, Docker, Postman
-
-⚡ API Flow
-
-1. Rate Limiting Filter
-
-Every incoming request passes through the RedisRateLimitingFilter:
-
+```mermaid
 graph LR
     A[Client Request] --> B{Redis Counter < 10?}
     B -- Yes --> C[Proceed to Controller]
     B -- No --> D[Return 429 Too Many Requests]
+```
 
+---
 
-2. Caching Layer (Cache-Aside Pattern)
+### **3. Spring Boot 4 & Jackson 3 Migration**
 
-Once the request passes the filter:
+* Uses **Spring Boot 4 (Preview)** and modern Jackson 3 (`tools.jackson.databind`).
+* Fully migrated from `com.fasterxml.jackson`.
 
-Check Cache: App queries Redis for weather:{city}.
+---
 
-Cache Hit: Returns deserialized data immediately (0ms latency).
+## 🛠️ Tech Stack
 
-Cache Miss:
+* **Framework:** Spring Boot 4.0 (Snapshot/Preview)
+* **Language:** Java 17+
+* **Caching/DB:** Redis (Dockerized)
+* **Libraries:** Spring Data Redis, Jackson 3, Lombok
+* **Tools:** Maven, Docker, Postman
 
-Calls External Weather API.
+---
 
-Serializes response using the Internal Dirty Mapper (with @class).
+## ⚡ API Flow
 
-Saves to Redis with TTL.
+### **1. Rate Limiting Filter**
 
-Returns clean JSON to user.
+All incoming requests pass through the custom `RedisRateLimitingFilter`.
 
-⚙️ Setup & Installation
+### **2. Caching Layer (Cache-Aside Pattern)**
 
-Prerequisites
+* **Cache Hit:** Return cached weather data instantly.
+* **Cache Miss:**
 
-Java 17 or higher
+  1. Call external Weather API
+  2. Serialize with internal mapper
+  3. Store in Redis with TTL
+  4. Return clean API JSON
 
-Maven
+---
 
-Redis (Running on localhost:6379)
+## ⚙️ Setup & Installation
 
-Step 1: Start Redis
+### **Prerequisites**
 
-If you have Docker installed, run:
+* Java 17+
+* Maven
+* Redis (localhost:6379)
 
+---
+
+### **Step 1: Start Redis**
+
+```bash
 docker run -d -p 6379:6379 --name my-redis redis
+```
 
+### **Step 2: Clone & Build Project**
 
-Step 2: Clone & Build
-
-git clone [https://github.com/your-username/advanced-redis-weather-api.git](https://github.com/your-username/advanced-redis-weather-api.git)
+```bash
+git clone https://github.com/your-username/advanced-redis-weather-api.git
 cd advanced-redis-weather-api
 mvn clean install
+```
 
+### **Step 3: Run Application**
 
-Step 3: Run the Application
-
+```bash
 mvn spring-boot:run
+```
 
+---
 
-🧪 Testing the Rate Limiter
+## 🧪 Testing the Rate Limiter
 
-You can test the rate limiter by hitting the endpoint rapidly.
+### **API Request:**
 
-Request:
+```http
 GET http://localhost:8080/weather/London
+```
 
-Response (Requests 1-10):
+### **Responses (1–10 requests):**
 
+```json
 {
-    "city": "London",
-    "country": "UK",
-    "temperature": 15.5,
-    "condition": "Cloudy",
-    "source": "Api Call" // or "cached"
+  "city": "London",
+  "country": "UK",
+  "temperature": 15.5,
+  "condition": "Cloudy",
+  "source": "Api Call"
 }
+```
 
+### **Response (11+ requests):**
 
-Response (Request 11+):
-Status: 429 Too Many Requests
+**Status:** 429 Too Many Requests
 
+```json
 {
-    "error": "Too Many Requests",
-    "message": "Rate limit exceeded. Try again later."
+  "error": "Too Many Requests",
+  "message": "Rate limit exceeded. Try again later."
 }
+```
 
+---
 
-📂 Project Structure
+## 📂 Project Structure
 
+```
 src/main/java
 ├── configs
-│   └── RedisConfigs.java       # Custom Serializer & Dual-Mapper Logic
+│   └── RedisConfigs.java
 ├── controller
-│   └── WeatherController.java  # REST Endpoints
+│   └── WeatherController.java
 ├── filter
-│   └── RedisRateLimitingFilter.java # Rate Limiting Logic
+│   └── RedisRateLimitingFilter.java
 ├── model
-│   └── WeatherResponse.java    # DTO
+│   └── WeatherResponse.java
 ├── services
-│   └── WeatherService.java     # Business Logic
+│   └── WeatherService.java
 └── RedisCachingApplication.java
+```
 
+---
 
-👨‍💻 Resume Highlights
+## 🖼️ Screenshots
 
-High-Performance Architecture: Implemented Cache-Aside pattern reducing external API calls by ~90%.
+(*Images + direct links*)
 
-Distributed Systems: Built a stateless, scalable rate limiter using Redis atomic operations.
+### API Flow Screens
 
-Modernization: Early adopter of Spring Boot 4 ecosystem and Jackson 3 migration patterns.
+* ![ApiCall1](images/ApiCall1.png)
+  **Link:** `images/ApiCall1.png`
+* ![ApiCall2](images/ApiCall2.png)
+  **Link:** `images/ApiCall2.png`
 
-Built with ❤️ by [Your Name]
+### Cache Screens
+
+* ![Cached1](images/Cached1.png)
+  **Link:** `images/Cached1.png`
+* ![Cached2](images/Cached2.png)
+  **Link:** `images/Cached2.png`
+
+### Error Screens
+
+* ![Notfound](images/Notfound.png)
+  **Link:** `images/Notfound.png`
+* ![Rate Limit Exceeded](images/ratelimitexceeded.png)
+  **Link:** `images/ratelimitexceeded.png`
+
+### Config Screens
+
+* ![Redis Config](images/redisconfig.png)
+  **Link:** `images/redisconfig.png`
+* ![Service Layer](images/servicelayer.png)
+  **Link:** `images/servicelayer.png`
+
+### API Flow Screens
+
+* ![ApiCall1](images/ApiCall1.png)
+* ![ApiCall2](images/ApiCall2.png)
+
+### Cache Screens
+
+* ![Cached1](images/Cached1.png)
+* ![Cached2](images/Cached2.png)
+
+### Error Screens
+
+* ![Notfound](images/Notfound.png)
+* ![Rate Limit Exceeded](images/ratelimitexceeded.png)
+
+### Config Screens
+
+* ![Redis Config](images/redisconfig.png)
+* ![Service Layer](images/servicelayer.png)
+
+---
+
+## 👨‍💻 Resume Highlights
+
+* Implemented **Cache-Aside pattern** reducing API calls by ~90%.
+* Built a **distributed rate limiter** using Redis atomic operations.
+* Early adopter of **Spring Boot 4** + **Jackson 3** modernization.
+
+---
+
+*Built with ❤️ by Your Name*
