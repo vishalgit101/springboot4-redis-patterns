@@ -17,18 +17,18 @@ This project is a sample API for weather data with features like:
 
 ## Images
 
-### Redis Configuration
-![Redis Config](images/redisconfig.png)
-
-### Service Layer
-![Service Layer](images/servicelayer.png)
-
 ### API Calls
 **Uncached API Call**
 ![API Call 1](images/ApiCall1.png)
 
 **Cached API Call**
 ![Cached Response](images/Cached1.png)
+
+### Redis Configuration
+![Redis Config](images/redisconfig.png)
+
+### Service Layer
+![Service Layer](images/servicelayer.png)
 
 **Error Responses**
 - Not Found:
@@ -39,4 +39,15 @@ This project is a sample API for weather data with features like:
 ---
 
 ## File Structure
-
+springboot4-redis-patterns/
+├── images/
+│ ├── ApiCall1.png
+│ ├── ApiCall2.png
+│ ├── Cached1.png
+│ ├── Cached2.png
+│ ├── Notfound.png
+│ ├── ratelimitexceeded.png
+│ ├── redisconfig.png
+│ └── servicelayer.png
+├── src/
+└── .gitignore
